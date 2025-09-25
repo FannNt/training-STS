@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Book API Tester</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f5f5;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            padding: 30px;
+        }
+
+        .section {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 8px;
+            border: 1px solid #e9ecef;
+        }
+
+        .section h2 {
+            color: #495057;
+            margin-bottom: 20px;
+            font-size: 1.4em;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #495057;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #dee2e6;
+            border-radius: 5px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: transform 0.2s;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%);
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, #feca57 0%, #ff9ff3 100%);
+        }
+
+        .books-list {
+            grid-column: 1 / -1;
+            margin-top: 20px;
+        }
+
+        .book-item {
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .book-header {
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .book-title {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #495057;
+        }
+
+        .book-id {
+            background: #667eea;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 0.9em;
+        }
+
+        .book-details {
+            color: #6c757d;
+            margin-bottom: 15px;
+        }
+
+        .response {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 15px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+
+        @media (max-width: 768px) {
+            .content {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📚 Book API Tester</h1>
+            <p>Test your RESTful API with this simple interface</p>
+        </div>
+
+        <div class="content">
+            <!-- Create Book Section -->
+            <div class="section">
+                <h2>➕ Create Book</h2>
+                <form id="createForm">
+                    <div class="form-group">
+                        <label for="title">Title:</label>
+                        <input type="text" id="title" name="title" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="author">Author:</label>
+                        <input type="text" id="author" name="author" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="isbn">ISBN:</label>
+                        <input type="text" id="isbn" name="isbn" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="published_at">Published Date:</label>
+                        <input type="date" id="published_at" name="published_at" required>
+                    </div>
+                    <button type="submit">Create Book</button>
+                </form>
+                <div id="createResponse" class="response" style="display: none;"></div>
+            </div>
+
+            <!-- Get/Update/Delete Book Section -->
+            <div class="section">
+                <h2>🔍 Manage Books</h2>
+                <div class="form-group">
+                    <label for="bookId">Book ID:</label>
+                    <input type="number" id="bookId" placeholder="Enter book ID">
+                </div>
+                <button onclick="getBook()">Get Book</button>
+                <button onclick="getAllBooks()">Get All Books</button>
+                <button onclick="deleteBook()" class="btn-danger">Delete Book</button>
+                
+                <div style="margin-top: 20px;">
+                    <h3>Update Book</h3>
+                    <div class="form-group">
+                        <label for="updateTitle">Title:</label>
+                        <input type="text" id="updateTitle" placeholder="New title (optional)">
+                    </div>
+                    <div class="form-group">
+                        <label for="updateAuthor">Author:</label>
+                        <input type="text" id="updateAuthor" placeholder="New author (optional)">
+                    </div>
+                    <div class="form-group">
+                        <label for="updateIsbn">ISBN:</label>
+                        <input type="text" id="updateIsbn" placeholder="New ISBN (optional)">
+                    </div>
+                    <div class="form-group">
+                        <label for="updatePublished">Published Date:</label>
+                        <input type="date" id="updatePublished">
+                    </div>
+                    <button onclick="updateBook()" class="btn-warning">Update Book</button>
+                </div>
+                <div id="manageResponse" class="response" style="display: none;"></div>
+            </div>
+        </div>
+
+        <!-- Books List Section -->
+        <div class="section books-list">
+            <h2>📖 Books List</h2>
+            <button onclick="getAllBooks()">Refresh List</button>
+            <div id="booksList"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8080/api';
+
+        // Create Book
+        document.getElementById('createForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = new FormData(e.target);
+            const bookData = {
+                title: formData.get('title'),
+                author: formData.get('author'),
+                isbn: formData.get('isbn'),
+                published_at: formData.get('published_at')
+            };
+
+            try {
+                const response = await fetch(`${API_BASE}/books`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(bookData)
+                });
+
+                const result = await response.json();
+                showResponse('createResponse', result, response.ok);
+                
+                if (response.ok) {
+                    e.target.reset();
+                    getAllBooks(); // Refresh the list
+                }
+            } catch (error) {
+                showResponse('createResponse', { error: 'Network error', message: error.message }, false);
+            }
+        });
+
+        // Get single book
+        async function getBook() {
+            const id = document.getElementById('bookId').value;
+            if (!id) {
+                showResponse('manageResponse', { error: 'Validation Error', message: 'Please enter a book ID' }, false);
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/books/${id}`);
+                const result = await response.json();
+                showResponse('manageResponse', result, response.ok);
+            } catch (error) {
+                showResponse('manageResponse', { error: 'Network error', message: error.message }, false);
+            }
+        }
+
+        // Get all books
+        async function getAllBooks() {
+            try {
+                const response = await fetch(`${API_BASE}/books`);
+                const result = await response.json();
+                showResponse('manageResponse', result, response.ok);
+                
+                if (response.ok) {
+                    displayBooksList(result.books);
+                }
+            } catch (error) {
+                showResponse('manageResponse', { error: 'Network error', message: error.message }, false);
+            }
+        }
+
+        // Update book
+        async function updateBook() {
+            const id = document.getElementById('bookId').value;
+            if (!id) {
+                showResponse('manageResponse', { error: 'Validation Error', message: 'Please enter a book ID' }, false);
+                return;
+            }
+
+            const updateData = {};
+            const title = document.getElementById('updateTitle').value;
+            const author = document.getElementById('updateAuthor').value;
+            const isbn = document.getElementById('updateIsbn').value;
+            const published = document.getElementById('updatePublished').value;
+
+            if (title) updateData.title = title;
+            if (author) updateData.author = author;
+            if (isbn) updateData.isbn = isbn;
+            if (published) updateData.published_at = published;
+
+            if (Object.keys(updateData).length === 0) {
+                showResponse('manageResponse', { error: 'Validation Error', message: 'Please provide at least one field to update' }, false);
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/books/${id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(updateData)
+                });
+
+                const result = await response.json();
+                showResponse('manageResponse', result, response.ok);
+                
+                if (response.ok) {
+                    // Clear update fields
+                    document.getElementById('updateTitle').value = '';
+                    document.getElementById('updateAuthor').value = '';
+                    document.getElementById('updateIsbn').value = '';
+                    document.getElementById('updatePublished').value = '';
+                    getAllBooks(); // Refresh the list
+                }
+            } catch (error) {
+                showResponse('manageResponse', { error: 'Network error', message: error.message }, false);
+            }
+        }
+
+        // Delete book
+        async function deleteBook() {
+            const id = document.getElementById('bookId').value;
+            if (!id) {
+                showResponse('manageResponse', { error: 'Validation Error', message: 'Please enter a book ID' }, false);
+                return;
+            }
+
+            if (!confirm(`Are you sure you want to delete book with ID ${id}?`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/books/${id}`, {
+                    method: 'DELETE'
+                });
+
+                const result = await response.json();
+                showResponse('manageResponse', result, response.ok);
+                
+                if (response.ok) {
+                    document.getElementById('bookId').value = '';
+                    getAllBooks(); // Refresh the list
+                }
+            } catch (error) {
+                showResponse('manageResponse', { error: 'Network error', message: error.message }, false);
+            }
+        }
+
+        // Display response
+        function showResponse(elementId, data, isSuccess) {
+            const element = document.getElementById(elementId);
+            element.style.display = 'block';
+            element.textContent = JSON.stringify(data, null, 2);
+            element.className = isSuccess ? 'response' : 'response error';
+        }
+
+        // Display books list
+        function displayBooksList(books) {
+            const container = document.getElementById('booksList');
+            
+            if (!books || books.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: #6c757d; margin-top: 20px;">No books found. Create some books to see them here!</p>';
+                return;
+            }
+
+            container.innerHTML = books.map(book => `
+                <div class="book-item">
+                    <div class="book-header">
+                        <span class="book-title">${book.title}</span>
+                        <span class="book-id">ID: ${book.id}</span>
+                    </div>
+                    <div class="book-details">
+                        <strong>Author:</strong> ${book.author}<br>
+                        <strong>ISBN:</strong> ${book.isbn}<br>
+                        <strong>Published:</strong> ${new Date(book.published_at).toLocaleDateString()}<br>
+                        <strong>Created:</strong> ${new Date(book.created_at).toLocaleString()}
+                    </div>
+                    <button onclick="loadBookForEdit(${book.id}, '${book.title}', '${book.author}', '${book.isbn}', '${book.published_at.split('T')[0]}')" class="btn-warning">
+                        Edit This Book
+                    </button>
+                    <button onclick="deleteBookById(${book.id})" class="btn-danger">
+                        Delete
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        // Load book data for editing
+        function loadBookForEdit(id, title, author, isbn, publishedAt) {
+            document.getElementById('bookId').value = id;
+            document.getElementById('updateTitle').value = title;
+            document.getElementById('updateAuthor').value = author;
+            document.getElementById('updateIsbn').value = isbn;
+            document.getElementById('updatePublished').value = publishedAt;
+            
+            // Scroll to the manage section
+            document.querySelector('.section:nth-child(2)').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // Delete book by ID from the list
+        async function deleteBookById(id) {
+            if (!confirm(`Are you sure you want to delete "${document.querySelector(`[onclick*="${id}"]`).closest('.book-item').querySelector('.book-title').textContent}"?`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/books/${id}`, {
+                    method: 'DELETE'
+                });
+
+                const result = await response.json();
+                
+                if (response.ok) {
+                    getAllBooks(); // Refresh the list
+                    showResponse('manageResponse', result, true);
+                } else {
+                    showResponse('manageResponse', result, false);
+                }
+            } catch (error) {
+                showResponse('manageResponse', { error: 'Network error', message: error.message }, false);
+            }
+        }
+
+        // Load books on page load
+        window.addEventListener('load', getAllBooks);
+    </script>
+</body>
+</html>
