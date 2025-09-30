@@ -182,9 +182,32 @@
         <div class="header">
             <h1>📚 Book API Tester</h1>
             <p>Test your RESTful API with this simple interface</p>
+            <div id="authStatus" style="margin-top: 15px; font-size: 0.9em;"></div>
         </div>
 
-        <div class="content">
+        <!-- Login Section -->
+        <div id="loginSection" class="section" style="margin: 30px; display: none;">
+            <h2>🔐 Login</h2>
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="username">Username:</label>
+                    <input type="text" id="username" name="username" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">Password:</label>
+                    <input type="password" id="password" name="password" required>
+                </div>
+                <button type="submit">Login</button>
+            </form>
+            <div id="loginResponse" class="response" style="display: none;"></div>
+            <div style="margin-top: 15px; padding: 15px; background: #e7f3ff; border-radius: 5px; font-size: 0.9em;">
+                <strong>Test Credentials:</strong><br>
+                Username: <code>admin</code> / Password: <code>admin123</code><br>
+                Username: <code>user1</code> / Password: <code>password1</code>
+            </div>
+        </div>
+
+        <div class="content" id="mainContent" style="display: none;">
             <!-- Create Book Section -->
             <div class="section">
                 <h2>➕ Create Book</h2>
@@ -255,6 +278,123 @@
 
     <script>
         const API_BASE = 'http://localhost:8080/api';
+        let authToken = localStorage.getItem('authToken');
+
+        // Check authentication status on page load
+        function checkAuth() {
+            if (authToken) {
+                document.getElementById('loginSection').style.display = 'none';
+                document.getElementById('mainContent').style.display = 'grid';
+                updateAuthStatus(true);
+            } else {
+                document.getElementById('loginSection').style.display = 'block';
+                document.getElementById('mainContent').style.display = 'none';
+                updateAuthStatus(false);
+            }
+        }
+
+        // Update auth status display
+        function updateAuthStatus(isLoggedIn) {
+            const statusDiv = document.getElementById('authStatus');
+            if (isLoggedIn) {
+                statusDiv.innerHTML = `
+                    <span style="color: #d4edda;">✓ Logged in</span>
+                    <button onclick="logout()" style="margin-left: 10px; padding: 8px 15px; font-size: 0.85em;">Logout</button>
+                `;
+            } else {
+                statusDiv.innerHTML = '<span style="color: #f8d7da;">⚠ Not logged in</span>';
+            }
+        }
+
+        // Login form handler
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = new FormData(e.target);
+            const loginData = {
+                username: formData.get('username'),
+                password: formData.get('password')
+            };
+
+            try {
+                const response = await fetch(`${API_BASE}/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(loginData)
+                });
+
+                const result = await response.json();
+                
+                if (response.ok) {
+                    authToken = result.token;
+                    localStorage.setItem('authToken', authToken);
+                    showResponse('loginResponse', result, true);
+                    setTimeout(() => {
+                        checkAuth();
+                        getAllBooks();
+                    }, 500);
+                } else {
+                    showResponse('loginResponse', result, false);
+                }
+            } catch (error) {
+                showResponse('loginResponse', { error: 'Network error', message: error.message }, false);
+            }
+        });
+
+        // Logout function
+        async function logout() {
+            if (!authToken) return;
+
+            try {
+                const response = await fetch(`${API_BASE}/logout`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': authToken
+                    }
+                });
+
+                const result = await response.json();
+                
+                if (response.ok || response.status === 401) {
+                    // Clear token even if request fails
+                    authToken = null;
+                    localStorage.removeItem('authToken');
+                    checkAuth();
+                    alert('Logged out successfully');
+                }
+            } catch (error) {
+                // Clear token even on network error
+                authToken = null;
+                localStorage.removeItem('authToken');
+                checkAuth();
+            }
+        }
+
+        // Helper function to make authenticated requests
+        async function fetchWithAuth(url, options = {}) {
+            if (!authToken) {
+                throw new Error('No authentication token');
+            }
+
+            options.headers = {
+                ...options.headers,
+                'Authorization': authToken
+            };
+
+            const response = await fetch(url, options);
+            
+            // If unauthorized, logout and redirect to login
+            if (response.status === 401) {
+                authToken = null;
+                localStorage.removeItem('authToken');
+                checkAuth();
+                throw new Error('Session expired. Please login again.');
+            }
+
+            return response;
+        }
 
         // Create Book
         document.getElementById('createForm').addEventListener('submit', async (e) => {
@@ -269,7 +409,7 @@
             };
 
             try {
-                const response = await fetch(`${API_BASE}/books`, {
+                const response = await fetchWithAuth(`${API_BASE}/books`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -298,7 +438,7 @@
             }
 
             try {
-                const response = await fetch(`${API_BASE}/books/${id}`);
+                const response = await fetchWithAuth(`${API_BASE}/books/${id}`);
                 const result = await response.json();
                 showResponse('manageResponse', result, response.ok);
             } catch (error) {
@@ -309,7 +449,7 @@
         // Get all books
         async function getAllBooks() {
             try {
-                const response = await fetch(`${API_BASE}/books`);
+                const response = await fetchWithAuth(`${API_BASE}/books`);
                 const result = await response.json();
                 showResponse('manageResponse', result, response.ok);
                 
@@ -346,7 +486,7 @@
             }
 
             try {
-                const response = await fetch(`${API_BASE}/books/${id}`, {
+                const response = await fetchWithAuth(`${API_BASE}/books/${id}`, {
                     method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json',
@@ -383,7 +523,7 @@
             }
 
             try {
-                const response = await fetch(`${API_BASE}/books/${id}`, {
+                const response = await fetchWithAuth(`${API_BASE}/books/${id}`, {
                     method: 'DELETE'
                 });
 
@@ -457,7 +597,7 @@
             }
 
             try {
-                const response = await fetch(`${API_BASE}/books/${id}`, {
+                const response = await fetchWithAuth(`${API_BASE}/books/${id}`, {
                     method: 'DELETE'
                 });
 
@@ -475,7 +615,12 @@
         }
 
         // Load books on page load
-        window.addEventListener('load', getAllBooks);
+        window.addEventListener('load', () => {
+            checkAuth();
+            if (authToken) {
+                getAllBooks();
+            }
+        });
     </script>
 </body>
 </html>
