@@ -183,18 +183,6 @@ curl -X POST http://localhost:8080/api/logout \
 3. **Use Token**: Include token in `Authorization` header for all book operations
 4. **Logout**: Send token to `/api/logout` to invalidate it
 
-## Security Notes
-
-⚠️ **This is a demonstration project. For production use, consider:**
-
-- Using HTTPS/TLS for encrypted communication
-- Implementing password hashing (bcrypt, argon2)
-- Using JWT tokens with expiration
-- Adding rate limiting for login attempts
-- Storing tokens in a database or Redis
-- Implementing refresh tokens
-- Adding role-based access control (RBAC)
-
 ## Notes
 
 - This API uses in-memory storage, so data and tokens will be lost when the server restarts
