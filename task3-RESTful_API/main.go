@@ -5,32 +5,59 @@ import (
 	"net/http"
 	"os"
 
+	"book-api/database"
 	"book-api/handlers"
 	"book-api/middleware"
 	"book-api/storage"
 )
 
 func main() {
+	// Load database configuration
+	dbConfig := database.LoadConfigFromEnv()
+	
+	// Connect to database
+	db, err := database.Connect(dbConfig)
+	if err != nil {
+		log.Fatalf("Failed to connect to database: %v", err)
+	}
+	
+	// Run migrations
+	if err := database.RunMigrations(db); err != nil {
+		log.Fatalf("Failed to run migrations: %v", err)
+	}
+	
+	// Seed initial users
+	if err := database.SeedUsers(db); err != nil {
+		log.Fatalf("Failed to seed users: %v", err)
+	}
+	
 	// Initialize storage
-	bookStorage := storage.NewMemoryStorage()
-	tokenStorage := storage.NewTokenStorage()
+	bookStorage := storage.NewPostgresStorage(db)
+	sessionStorage := storage.NewSessionStorage(db)
 	
 	// Initialize handlers
 	bookHandler := handlers.NewBookHandler(bookStorage)
-	authHandler, err := handlers.NewAuthHandler(tokenStorage, "config.yaml")
+	authHandler := handlers.NewAuthHandler(sessionStorage, db)
+	
+	// Get SQL DB for health check
+	sqlDB, err := db.DB()
 	if err != nil {
-		log.Fatalf("Failed to initialize auth handler: %v", err)
+		log.Fatalf("Failed to get SQL DB: %v", err)
 	}
 	
 	// Setup routes
 	mux := http.NewServeMux()
+	
+	// Health check endpoint
+	healthHandler := handlers.NewHealthCheckHandler(sqlDB)
+	mux.HandleFunc("/health", healthHandler.Check)
 	
 	// Auth routes (no authentication required)
 	mux.HandleFunc("/api/login", authHandler.Login)
 	mux.HandleFunc("/api/logout", authHandler.Logout)
 	
 	// Protected book routes (authentication required)
-	authMiddleware := middleware.AuthMiddleware(tokenStorage)
+	authMiddleware := middleware.AuthMiddleware(sessionStorage)
 	mux.Handle("/api/books", authMiddleware(http.HandlerFunc(bookHandler.HandleBooks)))
 	mux.Handle("/api/books/", authMiddleware(http.HandlerFunc(bookHandler.HandleBookByID)))
 	

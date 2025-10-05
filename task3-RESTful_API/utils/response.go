@@ -5,12 +5,6 @@ import (
 	"net/http"
 )
 
-// ErrorResponse represents an error response
-type ErrorResponse struct {
-	Error   string `json:"error"`
-	Message string `json:"message"`
-}
-
 // WriteJSONResponse writes a JSON response
 func WriteJSONResponse(w http.ResponseWriter, statusCode int, data interface{}) {
 	w.Header().Set("Content-Type", "application/json")
@@ -20,9 +14,8 @@ func WriteJSONResponse(w http.ResponseWriter, statusCode int, data interface{}) 
 
 // WriteErrorResponse writes an error response
 func WriteErrorResponse(w http.ResponseWriter, statusCode int, message string) {
-	response := ErrorResponse{
-		Error:   http.StatusText(statusCode),
-		Message: message,
+	response := map[string]string{
+		"error": message,
 	}
 	WriteJSONResponse(w, statusCode, response)
 }

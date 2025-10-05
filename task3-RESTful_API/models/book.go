@@ -6,13 +6,13 @@ import (
 
 // Book represents a book entity
 type Book struct {
-	ID          int       `json:"id"`
-	Title       string    `json:"title"`
-	Author      string    `json:"author"`
-	ISBN        string    `json:"isbn"`
+	ID          int       `json:"id" gorm:"primaryKey;autoIncrement"`
+	Title       string    `json:"title" gorm:"not null"`
+	Author      string    `json:"author" gorm:"not null"`
+	ISBN        string    `json:"isbn" gorm:"uniqueIndex;not null"`
 	PublishedAt time.Time `json:"published_at"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	CreatedAt   time.Time `json:"created_at" gorm:"autoCreateTime"`
+	UpdatedAt   time.Time `json:"updated_at" gorm:"autoUpdateTime"`
 }
 
 // CreateBookRequest represents the request payload for creating a book

@@ -1,20 +1,29 @@
 # Book RESTful API
 
-A simple RESTful API for managing books built with native Go (no external frameworks).
+A RESTful API for managing books built with Go, PostgreSQL, and GORM.
 
 ## Features
 
 - **CRUD Operations**: Create, Read, Update, Delete books
-- **Authentication**: Token-based authentication with login/logout
+- **Authentication**: Token-based authentication with bcrypt password hashing
 - **Protected Endpoints**: All book operations require authentication
+- **PostgreSQL Database**: Persistent storage with GORM ORM
+- **Database Migrations**: Automated schema management with golang-migrate
 - **RESTful Design**: Follows REST conventions
 - **Clean Architecture**: Separated concerns with models, handlers, storage, middleware, and utilities
-- **Thread-Safe**: Concurrent-safe in-memory storage
+- **Session Management**: Database-backed sessions with 24-hour expiration
+- **Health Check**: Endpoint to monitor API and database status
 - **JSON API**: All requests and responses in JSON format
 - **CORS Support**: Cross-origin requests enabled
 - **Web Interface**: Simple HTML frontend for testing
 
 ## API Endpoints
+
+### Health Check
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/health` | Check API and database health |
 
 ### Authentication Endpoints (Public)
 
@@ -40,58 +49,109 @@ A simple RESTful API for managing books built with native Go (no external framew
 ```
 task3-RESTful_API/
 ├── main.go              # Entry point and server setup
-├── config.yaml          # User credentials configuration
+├── database/
+│   ├── db.go            # Database connection
+│   ├── migrate.go       # Migration runner
+│   └── seed.go          # Database seeding
+├── migrations/          # SQL migration files
+│   ├── 000001_create_books_table.up.sql
+│   ├── 000001_create_books_table.down.sql
+│   ├── 000002_create_users_table.up.sql
+│   ├── 000002_create_users_table.down.sql
+│   ├── 000003_create_sessions_table.up.sql
+│   └── 000003_create_sessions_table.down.sql
 ├── models/
-│   ├── book.go          # Book model and data structures
-│   └── auth.go          # Authentication models
+│   ├── book.go          # Book model with GORM tags
+│   └── auth.go          # User and Session models with bcrypt
 ├── handlers/
 │   ├── book.go          # HTTP handlers for CRUD operations
-│   └── auth.go          # Authentication handlers (login/logout)
+│   ├── auth.go          # Authentication handlers
+│   └── health.go        # Health check handler
 ├── middleware/
 │   └── auth.go          # Authentication middleware
 ├── storage/
-│   ├── memory.go        # In-memory book storage
-│   └── token.go         # Token storage and management
+│   ├── memory.go        # In-memory storage (legacy)
+│   ├── postgres.go      # PostgreSQL book storage
+│   ├── session.go       # PostgreSQL session storage
+│   └── token.go         # Token storage (legacy)
 ├── utils/
 │   └── response.go      # JSON response utilities
 ├── fe/
 │   └── index.html       # Web frontend for testing
+├── docs/
+│   ├── docs.go          # Swagger documentation
+│   └── swagger.json     # OpenAPI specification
+├── .env.example         # Environment variables template
 ├── go.mod               # Go module file
 └── README.md            # This file
 ```
 
-## Running the API
+## Quick Start
 
-1. Navigate to the project directory:
-   ```bash
-   cd task3-RESTful_API
-   ```
+### 1. Setup PostgreSQL Database
 
-2. Install dependencies:
-   ```bash
-   go mod tidy
-   ```
+Install and start PostgreSQL on your system:
 
-3. Run the server:
-   ```bash
-   go run main.go
-   ```
+```bash
+# Ubuntu/Debian
+sudo apt-get install postgresql postgresql-contrib
+sudo systemctl start postgresql
 
-4. The server will start on port 8080 (or the PORT environment variable if set)
+# macOS
+brew install postgresql
+brew services start postgresql
 
-5. Open the web interface:
-   - Open `fe/index.html` in your browser
-   - Or visit `http://localhost:8080` if serving the frontend
+# Create database
+psql -U postgres -c "CREATE DATABASE bookapi;"
+```
+
+### 2. Set Environment Variables
+
+```bash
+# Copy environment template
+cp .env.example .env
+
+# Edit .env with your PostgreSQL credentials
+# DB_HOST=localhost
+# DB_PORT=5432
+# DB_USER=postgres
+# DB_PASSWORD=your_password
+# DB_NAME=bookapi
+# DB_SSLMODE=disable
+```
+
+### 3. Run the Application
+
+```bash
+# Install dependencies
+go mod tidy
+
+# Run the server
+go run main.go
+```
+
+The application will:
+- Connect to PostgreSQL
+- Run database migrations automatically
+- Seed initial users (admin, user1, testuser)
+- Start server on port 8080
+
+### 4. Access the Application
+
+- **Web Interface**: Open `fe/index.html` in your browser
+- **Login**: Use `admin` / `admin123`
 
 ## Test Credentials
 
-The following users are configured in `config.yaml`:
+The following users are automatically seeded in the database:
 
 | Username | Password |
 |----------|----------|
 | admin | admin123 |
 | user1 | password1 |
 | testuser | test123 |
+
+**Note**: Passwords are hashed using bcrypt before storage.
 
 ## API Usage Examples
 
@@ -183,11 +243,36 @@ curl -X POST http://localhost:8080/api/logout \
 3. **Use Token**: Include token in `Authorization` header for all book operations
 4. **Logout**: Send token to `/api/logout` to invalidate it
 
+## Database Schema
+
+### Books Table
+- Stores book information with unique ISBN constraint
+- Indexes on ISBN, title, and author for fast queries
+
+### Users Table
+- Stores user credentials with bcrypt hashed passwords
+- Unique username constraint
+
+### Sessions Table
+- Stores authentication tokens with 24-hour expiration
+- Automatic cleanup of expired sessions
+
 ## Notes
 
-- This API uses in-memory storage, so data and tokens will be lost when the server restarts
-- Date format for `published_at` should be YYYY-MM-DD
-- The API includes CORS headers for cross-origin requests
-- All responses are in JSON format
-- Tokens are simple random hex strings (32 characters)
-- User credentials are stored in plain text in `config.yaml` (not production-ready)
+- **Persistent Storage**: All data is stored in PostgreSQL
+- **Password Security**: Passwords are hashed using bcrypt
+- **Session Expiration**: Tokens expire after 24 hours
+- **Date Format**: `published_at` should be YYYY-MM-DD
+- **CORS**: Enabled for cross-origin requests
+- **Response Format**: All responses are in JSON
+- **Token Format**: 32-character hex strings
+
+## Production Considerations
+
+- Use environment variables for sensitive configuration
+- Enable SSL/TLS for database connections
+- Set up database backups
+- Configure connection pooling
+- Implement rate limiting
+- Add monitoring and logging
+- Use a secrets manager for credentials

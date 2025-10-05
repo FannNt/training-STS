@@ -8,7 +8,7 @@ import (
 )
 
 // AuthMiddleware creates an authentication middleware
-func AuthMiddleware(tokenStorage *storage.TokenStorage) func(http.Handler) http.Handler {
+func AuthMiddleware(sessionStorage *storage.SessionStorage) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// Get token from Authorization header
@@ -24,7 +24,7 @@ func AuthMiddleware(tokenStorage *storage.TokenStorage) func(http.Handler) http.
 			}
 
 			// Validate token
-			_, valid := tokenStorage.ValidateToken(token)
+			_, valid := sessionStorage.ValidateToken(token)
 			if !valid {
 				utils.WriteErrorResponse(w, http.StatusUnauthorized, "Invalid or expired token")
 				return

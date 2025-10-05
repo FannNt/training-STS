@@ -3,47 +3,26 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
-	"os"
 
 	"book-api/models"
 	"book-api/storage"
 	"book-api/utils"
 
-	"gopkg.in/yaml.v3"
+	"gorm.io/gorm"
 )
 
 // AuthHandler handles authentication requests
 type AuthHandler struct {
-	tokenStorage *storage.TokenStorage
-	config       *models.Config
+	sessionStorage *storage.SessionStorage
+	db             *gorm.DB
 }
 
 // NewAuthHandler creates a new auth handler
-func NewAuthHandler(tokenStorage *storage.TokenStorage, configPath string) (*AuthHandler, error) {
-	config, err := loadConfig(configPath)
-	if err != nil {
-		return nil, err
-	}
-
+func NewAuthHandler(sessionStorage *storage.SessionStorage, db *gorm.DB) *AuthHandler {
 	return &AuthHandler{
-		tokenStorage: tokenStorage,
-		config:       config,
-	}, nil
-}
-
-// loadConfig loads the configuration from YAML file
-func loadConfig(path string) (*models.Config, error) {
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return nil, err
+		sessionStorage: sessionStorage,
+		db:             db,
 	}
-
-	var config models.Config
-	if err := yaml.Unmarshal(data, &config); err != nil {
-		return nil, err
-	}
-
-	return &config, nil
 }
 
 // Login handles user login
@@ -64,21 +43,24 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Check credentials
+	// Check credentials from database
 	if !h.validateCredentials(req.Username, req.Password) {
 		utils.WriteErrorResponse(w, http.StatusUnauthorized, "Invalid username or password")
 		return
 	}
 
 	// Generate token
-	token, err := h.tokenStorage.GenerateToken()
+	token, err := h.sessionStorage.GenerateToken()
 	if err != nil {
 		utils.WriteErrorResponse(w, http.StatusInternalServerError, "Failed to generate token")
 		return
 	}
 
-	// Store token
-	h.tokenStorage.StoreToken(token, req.Username)
+	// Store token in database
+	if err := h.sessionStorage.StoreToken(token, req.Username); err != nil {
+		utils.WriteErrorResponse(w, http.StatusInternalServerError, "Failed to store session")
+		return
+	}
 
 	utils.WriteJSONResponse(w, http.StatusOK, models.LoginResponse{
 		Token:   token,
@@ -105,8 +87,8 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 		token = token[7:]
 	}
 
-	// Remove token
-	if !h.tokenStorage.RemoveToken(token) {
+	// Remove token from database
+	if !h.sessionStorage.RemoveToken(token) {
 		utils.WriteErrorResponse(w, http.StatusUnauthorized, "Invalid token")
 		return
 	}
@@ -116,12 +98,14 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// validateCredentials checks if the username and password match
+// validateCredentials checks if the username and password match using bcrypt
 func (h *AuthHandler) validateCredentials(username, password string) bool {
-	for _, user := range h.config.Users {
-		if user.Username == username && user.Password == password {
-			return true
-		}
+	var user models.User
+	err := h.db.Where("username = ?", username).First(&user).Error
+	
+	if err != nil {
+		return false
 	}
-	return false
+	
+	return user.CheckPassword(password)
 }
