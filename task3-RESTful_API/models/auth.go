@@ -46,15 +46,17 @@ type Config struct {
 }
 
 // LoginRequest represents the login request payload
+// @Description Login credentials
 type LoginRequest struct {
-	Username string `json:"username"`
-	Password string `json:"password"`
+	Username string `json:"username" example:"admin"`
+	Password string `json:"password" example:"admin123"`
 }
 
 // LoginResponse represents the login response
+// @Description Login response with access token
 type LoginResponse struct {
-	Token   string `json:"token"`
-	Message string `json:"message"`
+	Token   string `json:"token" example:"a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6"`
+	Message string `json:"message" example:"Login successful"`
 }
 
 // LogoutRequest represents the logout request payload

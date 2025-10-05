@@ -26,6 +26,14 @@ func NewAuthHandler(sessionStorage *storage.SessionStorage, db *gorm.DB) *AuthHa
 }
 
 // Login handles user login
+// @Summary User login
+// @Description Authenticate user and return access token
+// @Tags Authentication
+// @Accept json
+// @Produce json
+// @Param credentials body models.LoginRequest true "Login credentials"
+// @Success 200 {object} models.LoginResponse "Login successful"
+// @Router /api/login [post]
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		utils.WriteErrorResponse(w, http.StatusMethodNotAllowed, "Method not allowed")
@@ -69,6 +77,14 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 }
 
 // Logout handles user logout
+// @Summary User logout
+// @Description Invalidate user session token
+// @Tags Authentication
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} models.MessageResponse "Logout successful"
+// @Router /api/logout [post]
 func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		utils.WriteErrorResponse(w, http.StatusMethodNotAllowed, "Method not allowed")

@@ -17,6 +17,14 @@ func NewHealthCheckHandler(db *sql.DB) *HealthCheckHandler {
 }
 
 // Check performs health check
+// @Summary Health check
+// @Description Check API and database health status
+// @Tags Health
+// @Accept json
+// @Produce json
+// @Success 200 {object} map[string]string "Service is healthy"
+// @Failure 503 {object} map[string]string "Service is unhealthy"
+// @Router /health [get]
 func (h *HealthCheckHandler) Check(w http.ResponseWriter, r *http.Request) {
 	response := map[string]string{
 		"status":   "healthy",

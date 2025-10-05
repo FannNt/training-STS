@@ -62,6 +62,14 @@ func (h *BookHandler) HandleBookByID(w http.ResponseWriter, r *http.Request) {
 }
 
 // getAllBooks retrieves all books
+// @Summary Get all books
+// @Description Retrieve a list of all books in the collection
+// @Tags Books
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} map[string]interface{} "List of books"
+// @Router /api/books [get]
 func (h *BookHandler) getAllBooks(w http.ResponseWriter, r *http.Request) {
 	books, err := h.storage.GetAll()
 	if err != nil {
@@ -76,6 +84,15 @@ func (h *BookHandler) getAllBooks(w http.ResponseWriter, r *http.Request) {
 }
 
 // getBookByID retrieves a specific book
+// @Summary Get book by ID
+// @Description Retrieve a specific book by its ID
+// @Tags Books
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "Book ID"
+// @Success 200 {object} models.Book "Book details"
+// @Router /api/books/{id} [get]
 func (h *BookHandler) getBookByID(w http.ResponseWriter, r *http.Request, id int) {
 	book, err := h.storage.GetByID(id)
 	if err != nil {
@@ -87,6 +104,15 @@ func (h *BookHandler) getBookByID(w http.ResponseWriter, r *http.Request, id int
 }
 
 // createBook creates a new book
+// @Summary Create a new book
+// @Description Add a new book to the collection
+// @Tags Books
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param book body models.CreateBookRequest true "Book details"
+// @Success 201 {object} models.Book "Book created successfully"
+// @Router /api/books [post]
 func (h *BookHandler) createBook(w http.ResponseWriter, r *http.Request) {
 	var req models.CreateBookRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -122,6 +148,16 @@ func (h *BookHandler) createBook(w http.ResponseWriter, r *http.Request) {
 }
 
 // updateBook updates an existing book
+// @Summary Update a book
+// @Description Update an existing book's details (partial update supported)
+// @Tags Books
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "Book ID"
+// @Param book body models.UpdateBookRequest true "Updated book details"
+// @Success 200 {object} models.Book "Book updated successfully"
+// @Router /api/books/{id} [put]
 func (h *BookHandler) updateBook(w http.ResponseWriter, r *http.Request, id int) {
 	// Check if book exists
 	existingBook, err := h.storage.GetByID(id)
@@ -167,6 +203,15 @@ func (h *BookHandler) updateBook(w http.ResponseWriter, r *http.Request, id int)
 }
 
 // deleteBook deletes a book
+// @Summary Delete a book
+// @Description Remove a book from the collection
+// @Tags Books
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "Book ID"
+// @Success 200 {object} models.MessageResponse "Book deleted successfully"
+// @Router /api/books/{id} [delete]
 func (h *BookHandler) deleteBook(w http.ResponseWriter, r *http.Request, id int) {
 	if err := h.storage.Delete(id); err != nil {
 		utils.WriteErrorResponse(w, http.StatusNotFound, "Book not found")

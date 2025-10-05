@@ -9,7 +9,29 @@ import (
 	"book-api/handlers"
 	"book-api/middleware"
 	"book-api/storage"
+	
+	httpSwagger "github.com/swaggo/http-swagger"
+	_ "book-api/docs" // Import generated docs
 )
+
+// @title Book API
+// @version 1.0
+// @description A RESTful API for managing books with authentication
+// @termsOfService http://swagger.io/terms/
+
+// @contact.name API Support
+// @contact.email support@bookapi.com
+
+// @license.name MIT
+// @license.url https://opensource.org/licenses/MIT
+
+// @host localhost:8080
+// @BasePath /
+
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
+// @description Type "Bearer" followed by a space and JWT token.
 
 func main() {
 	// Load database configuration
@@ -48,6 +70,9 @@ func main() {
 	// Setup routes
 	mux := http.NewServeMux()
 	
+	// Swagger documentation
+	mux.HandleFunc("/api/docs/", httpSwagger.WrapHandler)
+	
 	// Health check endpoint
 	healthHandler := handlers.NewHealthCheckHandler(sqlDB)
 	mux.HandleFunc("/health", healthHandler.Check)
@@ -70,6 +95,7 @@ func main() {
 	}
 	
 	log.Printf("Server starting on port %s", port)
+	log.Printf("Swagger docs available at http://localhost:%s/api/docs/", port)
 	log.Fatal(http.ListenAndServe(":"+port, handler))
 }
 
